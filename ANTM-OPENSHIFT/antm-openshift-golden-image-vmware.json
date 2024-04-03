@@ -1,0 +1,162 @@
+{
+  "variables": {
+    "imageName": "antm-golden-openshift-base",
+    "templateVersion": "0.2.1",
+    "cookbook_path": "../",
+    "vcenter_server": "",
+    "vcenter_user": "",
+    "vcenter_pass": "",
+    "datacenter": "",
+    "vm_cluster": "",
+    "vm_net": "",
+    "resource_pool": "",
+    "vm_host": "",
+    "datastore": "",
+    "openshift_source_iso": "",
+    "openshift_source_ova": "",
+    "ssh_user": "",
+    "ssh_pass": "",
+    "root_volume_size": "100"
+  },
+
+  "builders": [{
+      "name": "vmware-host",
+      "type": "vsphere-iso",
+      "datacenter": "{{user `datacenter`}}",
+      "vcenter_server": "{{user `vcenter_server`}}",
+      "username": "{{user `vcenter_user`}}",
+      "password": "{{user `vcenter_pass`}}",
+      "resource_pool": "{{user `resource_pool`}}",
+      "vm_name": "{{user `imageName`}}-Template-{{ user `templateVersion` }}",
+      "host": "{{user `vm_host`}}",
+      "datastore": "{{user `datastore`}}",
+      "guest_os_type": "rhel7_64Guest",
+      "ssh_username": "{{user `ssh_user`}}",
+      "ssh_password": "{{user `ssh_pass`}}",
+      "ssh_pty": true,
+      "CPUs": 1,
+      "RAM": 1024,
+      "RAM_reserve_all": true,
+
+      "disk_controller_type": "pvscsi",
+      "disk_size": "230000",
+      "disk_thin_provisioned": true,
+
+      "network_card": "vmxnet3",
+
+      "iso_paths": [
+        "[{{user `datastore`}}] {{user `openshift_source_iso`}}"
+      ],
+      "floppy_files": [
+        "{{template_dir}}/ks-test.cfg"
+      ],
+      "boot_order": "disk,cdrom",
+      "boot_command": " <esc> <wait> linux inst.text inst.ks=hd:fd0:/ks-test.cfg <enter> ",
+      "convert_to_template": true
+    },
+    {
+        "name": "vmware-cluster-drs",
+        "type": "vsphere-iso",
+        "datacenter": "{{user `datacenter`}}",
+        "vcenter_server": "{{user `vcenter_server`}}",
+        "username": "{{user `vcenter_user`}}",
+        "password": "{{user `vcenter_pass`}}",
+        "resource_pool": "{{user `resource_pool`}}",
+        "vm_name": "{{user `imageName`}}-Template-{{ user `templateVersion` }}",
+        "cluster": "{{user `vm_cluster`}}",
+        "host": "{{user `vm_host`}}",
+        "network": "{{user `vm_net`}}",
+        "configuration_parameters": {
+          "ethernet0.startConnected": "TRUE"
+        },
+        "datastore": "{{user `datastore`}}",
+        "guest_os_type": "rhel7_64Guest",
+        "ssh_username": "{{user `ssh_user`}}",
+        "ssh_password": "{{user `ssh_pass`}}",
+        "ssh_pty": true,
+        "CPUs": 1,
+        "RAM": 1024,
+        "RAM_reserve_all": true,
+
+        "disk_controller_type": "pvscsi",
+        "disk_size": "230000",
+        "disk_thin_provisioned": true,
+
+        "network_card": "vmxnet3",
+
+        "iso_paths": [
+          "[{{user `datastore`}}] {{user `openshift_source_iso`}}"
+        ],
+        "floppy_files": [
+          "{{template_dir}}/ks-prod.cfg"
+        ],
+        "boot_order": "disk,cdrom",
+        "boot_command": " <esc> <wait> linux inst.text inst.ks=hd:fd0:/ks-prod.cfg <enter> ",
+        "convert_to_template": true
+      }
+  ],
+
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "files/wellpoint1.pem",
+      "destination": "/etc/pki/ca-trust/source/anchors/wellpoint.pem"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "/usr/bin/update-ca-trust"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "subscription-manager register --username srvapaas --password RedHat424 --auto-attach",
+        "subscription-manager repos --enable rhel-7-server-ansible-2.8-rpms",
+        "yum install ansible -y"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "files/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz",
+      "destination": "/tmp/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz"
+    },
+    {
+      "type": "file",
+      "source": "files/AWS_ATM_SPL_DEFAULT.tar",
+      "destination": "/tmp/AWS_ATM_SPL_DEFAULT.tar"
+    },
+    {
+      "type": "file",
+      "source": "files/QualysCloudAgent.rpm",
+      "destination": "/tmp/QualysCloudAgent.rpm"
+    },
+    {
+      "type": "chef-solo",
+      "cookbook_paths": ["../"],
+      "version": "16.13.16",
+      "run_list": [
+        "anthem_linux::02_roles_permissions",
+        "anthem_linux::03_access_auth",
+        "anthem_linux::06_audit_logging",
+        "anthem_linux::splunk",
+        "anthem_linux::qualys_agent",
+        "anthem_linux::tanium"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sed -i '/ipforwarding/ c\\ipforwarding = 1' /etc/sysctl.conf"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "subscription-manager remove --all",
+        "subscription-manager unregister",
+        "subscription-manager clean"
+      ]
+    }
+  ]
+}

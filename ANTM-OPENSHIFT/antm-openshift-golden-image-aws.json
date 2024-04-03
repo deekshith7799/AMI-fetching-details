@@ -1,0 +1,146 @@
+{
+  "variables": {
+    "imageName": "antm-golden-openshift-base",
+    "templateVersion": "0.2.0",
+    "associate_public_ip": "false",
+    "ignore_tls": "false",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+    "openshift_source_ami": "RHEL-7.6_HVM_GA-*-x86_64-0-Access2-GP2",
+    "aws_region": "us-east-1",
+    "cookbook_path": "./cookbooks/",
+    "vpcId": "vpc-a0a38ed8",
+    "subnetId": "subnet-3f685c5b",
+    "source_cidr": "22.0.0.0/8",
+    "root_volume_size": "40",
+    "docker_volume_size": "110",
+    "aws_accounts": null
+  },
+
+  "builders": [{
+      "name": "aws",
+      "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+      "type": "amazon-ebs",
+      "associate_public_ip_address": "{{user `associate_public_ip`}}",
+      "region": "{{user `aws_region`}}",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "token": "{{user `aws_session_token`}}",
+      "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+      "instance_type": "t2.large",
+      "ena_support": true,
+      "sriov_support": true,
+      "ssh_pty": true,
+      "vpc_id": "{{user `vpcId` }}",
+      "subnet_id": "{{user `subnetId`}}",
+      "ssh_username": "ec2-user",
+      "source_ami_filter": {
+        "filters": {
+          "architecture": "x86_64",
+          "virtualization-type": "hvm",
+          "name": "{{user `openshift_source_ami`}}",
+          "root-device-type": "ebs",
+          "state": "available"
+        },
+        "owners": ["309956199498"],
+        "most_recent": true
+      },
+      "ami_name": "{{user `imageName`}}-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "ami_description": "Created by AMI Builder",
+      "encrypt_boot": false,
+      "launch_block_device_mappings": [{
+        "device_name": "/dev/xvda",
+        "volume_size": "{{user `root_volume_size`}}",
+        "volume_type": "gp2",
+        "delete_on_termination": true
+      },
+      {
+        "device_name": "/dev/xvdg",
+        "volume_size": "{{user `docker_volume_size`}}",
+        "volume_type": "gp2",
+        "delete_on_termination": true
+      }],
+      "tags": {
+        "ImageName": "{{user `imageName`}}-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}-cloudera",
+        "CreatedBy": "AMIBuilder"
+      },
+      "snapshot_users": "{{user `aws_accounts`}}",
+      "snapshot_tags": {
+        "ImageName": "{{user `imageName`}}-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}",
+        "CreatedBy": "AMIBuilder"
+      }
+    }
+  ],
+
+  "provisioners": [{
+      "type": "shell",
+      "inline": "sleep 60"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo subscription-manager register --username srvapaas --password RedHat424 --auto-attach",
+        "sudo subscription-manager repos --enable rhel-7-server-ansible-2.8-rpms",
+        "sudo yum install ansible -y",
+        "sudo yum install lvm2 -y"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "files/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz",
+      "destination": "/tmp/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz"
+    },
+    {
+      "type": "file",
+      "source": "files/AWS_ATM_SPL_DEFAULT.tar",
+      "destination": "/tmp/AWS_ATM_SPL_DEFAULT.tar"
+    },
+    {
+      "type": "file",
+      "source": "files/QualysCloudAgent.rpm",
+      "destination": "/tmp/QualysCloudAgent.rpm"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo bash -c \"mkdir /tmp/ssm\"",
+        "sudo bash -c \"sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm\""
+      ]
+    },
+    {
+      "type": "chef-solo",
+      "cookbook_paths": ["cookbooks"],
+      "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+      "version": "16.13.16",
+      "run_list": [
+        "anthem_linux::default"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo sed -i '/ipforwarding/ c\\ipforwarding = 1' /etc/sysctl.conf"
+      ]
+    },
+    {
+      "type": "shell",
+      "script": "{{template_dir}}/aws_lvm.sh",
+      "execute_command": "chmod +x {{ .Path }}; sudo {{ .Vars }} {{ .Path }}"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo subscription-manager remove --all",
+        "sudo subscription-manager unregister",
+        "sudo subscription-manager clean"
+      ]
+    }
+  ]
+}

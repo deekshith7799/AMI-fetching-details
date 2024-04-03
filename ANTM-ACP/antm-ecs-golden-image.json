@@ -1,0 +1,275 @@
+{
+  "variables": {
+    "imageName": "antm-golden-ecs",
+    "templateVersion": "0.3.1",
+    "associate_public_ip": "false",
+    "ignore_tls": "false",
+    "source_cidr": "22.0.0.0/8",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+    "amzn2_source_ami": "amzn2-ami-kernel-5.10-hvm-*-x86_64-gp2",
+    "ubuntu_source_ami": "*ubuntu-xenial-16.04-amd64-server-*",
+    "cookbook_path": "./cookbooks/",
+    "vpcId": "vpc-a0a38ed8",
+    "subnetId": "subnet-3f685c5b",
+    "root_volume_size": "30",
+    "region":	"us-east-1",
+    "aws_accounts": null
+  },
+
+  "builders": [{
+    "name": "amazon2",
+    "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+    "type": "amazon-ebs",
+    "iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+    "associate_public_ip_address": "{{user `associate_public_ip`}}",
+    "region": "{{user `aws_region`}}",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "token": "{{user `aws_session_token`}}",
+    "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+    "instance_type": "t2.large",
+    "vpc_id": "{{user `vpcId` }}",
+    "subnet_id": "{{user `subnetId`}}",
+    "ena_support": true,
+    "sriov_support": true,
+    "ssh_username": "ec2-user",
+    "source_ami_filter": {
+      "filters": {
+        "architecture": "x86_64",
+        "virtualization-type": "hvm",
+        "name": "{{user `amzn2_source_ami`}}",
+        "root-device-type": "ebs",
+        "state": "available"
+      },
+      "owners": ["137112412989"],
+      "most_recent": true
+    },
+    "ami_name": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+    "ami_description": "Created by AMI Builder",
+    "encrypt_boot": false,
+    "launch_block_device_mappings": [{
+        "device_name": "/dev/xvda",
+        "volume_size": "{{user `root_volume_size`}}",
+        "volume_type": "gp3",
+        "delete_on_termination": true
+      },
+      {
+        "device_name": "/dev/xvdcz",
+        "volume_size": "60",
+        "volume_type": "gp3",
+        "delete_on_termination": true,
+        "encrypted": false
+      },
+      {
+        "device_name": "/dev/xvdcy",
+        "volume_size": "60",
+        "volume_type": "gp3",
+        "delete_on_termination": true,
+        "encrypted": false
+      }
+    ],
+    "tags": {
+      "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-amznlinux2",
+      "CreatedBy": "AMIBuilder"
+    },
+    "snapshot_users": "{{user `aws_accounts`}}",
+    "snapshot_tags": {
+      "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-amznlinux2",
+      "CreatedBy": "AMIBuilder"
+    }
+  },
+  {
+    "name": "ubuntu",
+    "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+    "type": "amazon-ebs",
+    "iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+    "associate_public_ip_address": "{{user `associate_public_ip`}}",
+    "region": "{{user `aws_region`}}",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "token": "{{user `aws_session_token`}}",
+    "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+    "instance_type": "t2.large",
+    "vpc_id": "{{user `vpcId` }}",
+    "subnet_id": "{{user `subnetId`}}",
+    "ena_support": true,
+    "sriov_support": true,
+    "ssh_username": "ubuntu",
+    "source_ami_filter": {
+      "filters": {
+        "architecture": "x86_64",
+        "virtualization-type": "hvm",
+        "name": "{{user `ubuntu_source_ami`}}",
+        "root-device-type": "ebs",
+        "state": "available"
+      },
+      "owners": ["099720109477"],
+      "most_recent": true
+    },
+    "ami_name": "{{user `imageName`}}-ubuntu-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+    "ami_description": "Created by AMI Builder",
+    "encrypt_boot": false,
+    "launch_block_device_mappings": [{
+      "device_name": "/dev/xvda",
+      "volume_size": "{{user `root_volume_size`}}",
+      "volume_type": "gp3",
+      "delete_on_termination": true
+    },
+    {
+      "device_name": "/dev/xvdcz",
+      "volume_size": "60",
+      "volume_type": "gp3",
+      "delete_on_termination": true,
+      "encrypted": false
+    }
+  ],
+    "tags": {
+      "ImageName": "{{user `imageName`}}-ubuntu-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-ubuntu",
+      "CreatedBy": "AMIBuilder"
+    },
+    "snapshot_users": "{{user `aws_accounts`}}",
+    "snapshot_tags": {
+      "ImageName": "{{user `imageName`}}-ubuntu-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-ubuntu",
+      "CreatedBy": "AMIBuilder"
+    }
+  }],
+
+  "provisioners": [{
+      "type": "shell",
+      "inline": "sleep 60"
+    },
+    {
+			"type": "shell",
+			"inline": [
+        "x=$(uname -rv);echo $x",
+				"sudo yum update -y",
+				"sudo yum update kernel -y",
+				"sudo yum install python-pip -y",
+        "sudo amazon-linux-extras install python3.8",
+				"sudo pip install --upgrade pip",
+				"sudo yum install java-1.8.0-openjdk -y",
+				"sudo yum install httpd -y",
+				"sudo yum install mod_ssl -y",
+        "sudo amazon-linux-extras install kernel-5.15 -y"
+			],
+      "only":["amazon2"]
+		},
+   {
+    	"type": "shell",
+    	"inline": [
+    		"sudo apt-get update -y",
+    		"sudo apt-get install openjdk-8-jre -y",
+    		"sudo apt-get install apache2 -y",
+        "sudo apt-get install python-pip -y",
+        "sudo pip install --upgrade pip",
+        "sudo pip install awscli --upgrade",
+        "sudo pip install ansible"
+        
+    	],
+    	"only": ["ubuntu"]
+    },
+		{
+			"type": "shell",
+			"inline": [
+				"cd /tmp",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/AWS_ATM_SPL_DEFAULT.tar ./",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/splunkforwarder-9.0.5-e9494146ae5c-Linux-x86_64.tgz ./",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/QualysCloudAgent.rpm ./",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/shell-scripts/TCS-Checks.sh ./",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/shell-scripts/kernel_remove.sh ./",
+        "sudo bash /tmp/TCS-Checks.sh",
+				"ls -l",
+        "sudo pip install ansible",
+        "cd /var/tmp",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/flexera.zip ./",
+        "sudo unzip flexera.zip",
+        "sudo rpm --upgrade --oldpackage --verbose /var/tmp/managesoft-21.0.0-1.x86_64.rpm"
+       ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbooks/certs-playbook.yml",
+      "playbook_dir": "playbooks",
+      "role_paths": [
+        "playbooks/certs/roles/certs-install"
+      ],
+      "clean_staging_directory": true
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "echo rebooting",
+        "sudo reboot"
+      ],
+        "expect_disconnect": true,
+        "only":["amazon2"]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo package-cleanup --oldkernels --count=1 -y",
+        "sudo yum update -y",
+        "x=$(uname -rv);echo $x"
+       ],
+      "only": ["amazon2"]
+    },
+    {
+      "type": "chef-solo",
+      "cookbook_paths": ["cookbooks"],
+      "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+      "version": "16.13.16",
+      "run_list": [
+        "anthem_linux::default"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbooks/ecs-playbook.yml",
+      "playbook_dir": "playbooks",
+      "role_paths": [
+        "playbooks/docker/roles/docker-ecs",
+        "playbooks/docker/roles/ecs"
+      ],
+      "clean_staging_directory": true
+    },
+    {
+      "type": "shell",
+      "inline": [
+          "sudo yum install iptables-services -y",
+          "sudo systemctl enable iptables",
+          "sudo systemctl start iptables",
+          "sudo systemctl status iptables",
+          "sudo systemctl restart docker",
+          "sudo systemctl status docker",
+          "sudo systemctl enable docker.service",
+          "sudo iptables -L",
+          "sudo iptables -I DOCKER-ISOLATION-STAGE-1 1 -p tcp --dport 8126 -j ACCEPT",
+          "sudo iptables -I DOCKER-ISOLATION-STAGE-1 2 -p udp --dport 8125 -j ACCEPT",
+          "sudo /sbin/service iptables save",
+          "sudo cat /etc/sysconfig/iptables",
+          "sudo systemctl enable iptables",
+          "sudo iptables -L",
+          "sudo bash /tmp/kernel_remove.sh"
+        ]
+    }
+  ],
+    "post-processors": [{
+    "type": "manifest",
+    "output": "manifests/ecs-output.json",
+    "strip_path": true
+  }]
+}

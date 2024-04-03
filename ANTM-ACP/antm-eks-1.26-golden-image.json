@@ -1,0 +1,235 @@
+{
+    "variables": {
+        "imageName": "antm-golden-eks-1.26",
+        "templateVersion": "0.3.1",
+        "associate_public_ip": "false",
+        "ignore_tls": "false",
+        "source_cidr": "22.0.0.0/8",
+        "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+        "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+        "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+        "amzn2_source_ami": "amazon-eks-node-1.26-*",
+        "aws_region": "us-east-1",
+        "cookbook_path": "./cookbooks/",
+        "vpcId": "vpc-a0a38ed8",
+        "subnetId": "subnet-3f685c5b",
+        "site247Install": "",
+        "site247Key": "",
+        "root_volume_size": "30",
+        "aws_accounts": null
+    },
+    "builders": [
+        {
+            "name": "amazon2",
+            "iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+            "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+            "type": "amazon-ebs",
+            "associate_public_ip_address": "{{user `associate_public_ip`}}",
+            "region": "{{user `aws_region`}}",
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "token": "{{user `aws_session_token`}}",
+            "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+            "instance_type": "t2.large",
+            "vpc_id": "{{user `vpcId` }}",
+            "subnet_id": "{{user `subnetId`}}",
+            "ena_support": true,
+            "sriov_support": true,
+            "ssh_username": "ec2-user",
+            "source_ami_filter": {
+                "filters": {
+                    "architecture": "x86_64",
+                    "virtualization-type": "hvm",
+                    "name": "{{user `amzn2_source_ami`}}",
+                    "root-device-type": "ebs",
+                    "state": "available"
+                },
+                "owners": [
+                    "602401143452"
+                ],
+                "most_recent": true
+            },
+            "ami_name": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+            "ami_description": "Created by AMI Builder",
+            "encrypt_boot": false,
+            "launch_block_device_mappings": [
+                {
+                    "device_name": "/dev/xvda",
+                    "volume_size": "{{user `root_volume_size`}}",
+                    "volume_type": "gp3",
+                    "delete_on_termination": true
+                },
+                {
+                    "device_name": "/dev/xvdcz",
+                    "volume_size": "60",
+                    "volume_type": "gp3",
+                    "delete_on_termination": true,
+                    "encrypted": false
+                }
+            ],
+            "tags": {
+                "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+                "BuildDate": "{{isotime}}",
+                "TemplateVersion": "{{user `templateVersion`}}",
+                "AMIType": "{{user `imageName`}}-amznlinux2",
+                "CreatedBy": "AMIBuilder",
+                "Version": "eks-1.26"
+                
+            },
+            "snapshot_users": "{{user `aws_accounts`}}",
+            "snapshot_tags": {
+                "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+                "BuildDate": "{{isotime}}",
+                "TemplateVersion": "{{user `templateVersion`}}",
+                "AMIType": "{{user `imageName`}}-amznlinux2",
+                "CreatedBy": "AMIBuilder"
+            }
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": "sleep 60"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "cd /tmp",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/AWS_ATM_SPL_DEFAULT.tar ./",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/splunkforwarder-9.0.5-e9494146ae5c-Linux-x86_64.tgz ./",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/QualysCloudAgent.rpm ./",
+                "ls -l",
+                "cd /var/tmp",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/flexera.zip ./",
+                "sudo unzip flexera.zip",
+                "sudo rpm --upgrade --oldpackage --verbose /var/tmp/managesoft-21.0.0-1.x86_64.rpm"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "x=$(uname -rv);echo $x",
+                "sudo bash -c \"source /etc/profile; yum update -y\"",
+                "sudo bash -c \"source /etc/profile; yum update kernel -y\""
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo yum install python-pip -y",
+                "sudo amazon-linux-extras install python3.8 -y",
+                "sudo amazon-linux-extras disable kernel-5.4 -y",
+                "sudo amazon-linux-extras enable kernel-5.10",
+                "sudo yum install docker -y"
+            ],
+            "only": ["amazon2"]
+        },
+        {
+            "type": "shell",
+            "inline": [
+              "echo rebooting",
+              "sudo reboot"
+            ],
+            "expect_disconnect": true,
+            "only":["amazon2"]
+        },
+        {
+            "type": "shell",
+            "inline": [
+              "sudo package-cleanup --oldkernels --count=1 -y",
+              "rpm -q kernel",
+              "sudo yum update -y",
+              "x=$(uname -rv);echo $x"
+             ],
+            "only": ["amazon2"]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo pip install ansible"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "cd /tmp",
+                "DD_AGENT_MAJOR_VERSION=7 DD_API_KEY=\"<DATADOG_API_KEY>\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\"",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/datadog.yaml ./",
+    		    "sudo mv datadog.yaml /etc/datadog-agent/",
+                "sudo systemctl restart datadog-agent"
+            ],
+            "only": [
+                "amazon2"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo yum install -y aws-cli && export PATH=/opt/spark/spark-1.5.2-bin-hadoop2.6/bin:$PATH"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo sed -i 's/0:docker-19.03.13ce-1.amzn2.*/#0:docker-19.03.13ce-1.amzn2.*/g' /etc/yum/pluginconf.d/versionlock.list",
+                "sudo sed -i 's/0:containerd-1.4.6-2.amzn2.*/#0:containerd-1.4.6-2.amzn2.*/g' /etc/yum/pluginconf.d/versionlock.list",
+                "sudo yum update -y"
+                ],
+            "only": [ "amazon2" ]
+        },
+        {
+            "type": "chef-solo",
+            "cookbook_paths": [
+                "cookbooks"
+            ],
+            "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+            "version": "16.13.16",
+            "run_list": [
+                "anthem_linux::default"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "mkdir -p /tmp/worker/"
+            ]
+        },
+        {
+            "type": "ansible-local",
+            "playbook_file": "playbooks/eks-playbook.yml",
+            "playbook_dir": "playbooks",
+            "role_paths": [
+                "playbooks/docker/roles/docker-common",
+                "playbooks/docker/roles/eks"
+            ],
+            "clean_staging_directory": true
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo systemctl restart docker",
+                "sudo systemctl status docker",
+                "sudo systemctl enable docker.service",
+                "cd /tmp",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/shell-scripts/TCS-Checks.sh ./",
+                "sudo bash /tmp/TCS-Checks.sh"
+            ]
+        },
+        {
+            "type": "ansible-local",
+            "playbook_file": "playbooks/certs-playbook.yml",
+            "playbook_dir": "playbooks",
+            "role_paths": [
+                "playbooks/certs/roles/certs-install"
+            ],
+            "clean_staging_directory": true
+        }
+    ],
+    "post-processors": [
+        {
+            "type": "manifest",
+            "output": "manifests/eks-output.json",
+            "strip_path": true
+        }
+    ]
+}

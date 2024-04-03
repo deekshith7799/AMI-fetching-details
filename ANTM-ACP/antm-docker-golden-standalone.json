@@ -1,0 +1,354 @@
+{
+	"variables": {
+		"imageName": "antm-golden-docker",
+		"templateVersion": "0.3.1",
+		"associate_public_ip": "false",
+		"ignore_tls": "false",
+		"source_cidr": "22.0.0.0/8",
+		"aws_access_key":	"{{env `AWS_ACCESS_KEY_ID`}}",
+		"aws_secret_key":	"{{env `AWS_SECRET_ACCESS_KEY`}}",
+		"aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+		"amzn2_source_ami": "amzn2-ami-kernel-5.10-hvm-*-x86_64-gp2",
+		"rhel_source_ami": "RHEL-8.7.0_HVM-*-x86_64-0-Hourly2-GP2",
+		"aws_region": "us-east-1",
+		"cookbook_path": "./cookbooks/",
+		"vpcId": "vpc-a0a38ed8",
+		"subnetId": "subnet-3f685c5b",
+		"root_volume_size":	"30",
+		"aws_accounts": null
+	},
+
+	"builders": [
+		{
+			"name": "amazon2",
+	    	"insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+			"type": "amazon-ebs",
+			"iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+			"associate_public_ip_address": "{{user `associate_public_ip`}}",
+			"access_key": "{{user `aws_access_key`}}",
+			"secret_key": "{{user `aws_secret_key`}}",
+			"token": "{{user `aws_session_token`}}",
+			"temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+			"vpc_id": "{{user `vpcId` }}",
+			"subnet_id": "{{user `subnetId`}}",
+			"ena_support": true,
+      		"sriov_support": true,
+			"ssh_username": "ec2-user",
+			"instance_type": "t2.small",
+			"region": "us-east-1",
+			"source_ami_filter": {
+	      	"filters": {
+	        "architecture": "x86_64",
+	        "virtualization-type": "hvm",
+	        "name": "{{user `amzn2_source_ami`}}",
+	        "root-device-type": "ebs",
+	        "state": "available"
+	      },
+	      "owners": ["137112412989"],
+	      "most_recent": true
+	    },
+			"ami_name": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+			"ami_description": "Created by AMI Builder",
+			"encrypt_boot": false,
+			"launch_block_device_mappings": [
+				{
+					"device_name": "/dev/xvda",
+					"volume_size": "{{user `root_volume_size`}}",
+					"volume_type": "gp3",
+					"delete_on_termination": true
+				},
+				{
+					"device_name": "/dev/xvdcz",
+					"volume_size": "60",
+					"volume_type": "gp3",
+					"delete_on_termination": true,
+					"encrypted": false
+				}
+			],
+			"tags": {
+				"ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+	      		"BuildDate": "{{isotime}}",
+	      		"TemplateVersion": "{{user `templateVersion`}}",
+	      		"AMIType": "{{user `imageName`}}-amznlinux2",
+	      		"CreatedBy": "AMIBuilder"
+			},
+			"snapshot_users": "{{user `aws_accounts`}}",
+			"snapshot_tags": {
+				"ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+				"BuildDate": "{{isotime}}",
+				"TemplateVersion": "{{user `templateVersion`}}",
+				"AMIType": "{{user `imageName`}}-amznlinux2",
+				"CreatedBy": "AMIBuilder"
+			}
+		},
+		{
+			"name": "rhel",
+	    	"insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+			"type": "amazon-ebs",
+			"iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+			"associate_public_ip_address": "{{user `associate_public_ip`}}",
+			"access_key": "{{user `aws_access_key`}}",
+			"secret_key": "{{user `aws_secret_key`}}",
+			"token": "{{user `aws_session_token`}}",
+			"temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+			"vpc_id": "{{user `vpcId` }}",
+			"subnet_id": "{{user `subnetId`}}",
+			"ena_support": true,
+      		"sriov_support": true,
+			"ssh_username": "ec2-user",
+			"instance_type": "t2.small",
+			"region": "us-east-1",
+			"source_ami_filter": {
+				"filters": {
+					"virtualization-type": "hvm",
+					"name": "{{user `rhel_source_ami`}}",
+					"root-device-type": "ebs"
+				},
+				"owners": ["309956199498"],
+				"most_recent": true
+			},
+			"ami_name": "{{user `imageName`}}-rhel-8.7-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+			"ami_description": "Created by AMI Builder",
+			"encrypt_boot": false,
+			"launch_block_device_mappings": [
+				{
+					"device_name": "/dev/sda1",
+					"volume_size": "{{user `root_volume_size`}}",
+					"volume_type": "gp3",
+					"delete_on_termination": true
+				},
+				{
+					"device_name": "/dev/xvdcz",
+					"volume_size": "60",
+					"volume_type": "gp3",
+					"delete_on_termination": true,
+					"encrypted": false
+				}
+			],
+			"tags": {
+				"ImageName": "{{user `imageName`}}-rhel-8.7-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+				"BuildDate": "{{isotime}}",
+				"TemplateVersion": "{{user `templateVersion`}}",
+				"AMIType": "{{user `imageName`}}-rhel-8.7",
+				"CreatedBy": "AMIBuilder"
+			},
+			"snapshot_users": "{{user `aws_accounts`}}",
+			"snapshot_tags": {
+				"ImageName": "{{user `imageName`}}-rhel-8.7-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+				"BuildDate": "{{isotime}}",
+				"TemplateVersion": "{{user `templateVersion`}}",
+				"AMIType": "{{user `imageName`}}-rhel-8.7",
+				"CreatedBy": "AMIBuilder"
+	    	}
+		}
+	],
+
+	"provisioners": [
+		{
+			"type": "shell",
+			"inline": "sleep 60"
+		},
+		
+		{
+			"type": "shell",
+			"inline": [
+				"sudo bash -c \"source /etc/profile; yum update --allowerasing -y\"",
+				"sudo bash -c \"source /etc/profile; yum update kernel -y\"",
+				"sudo yum remove python3 -y",
+				"sudo yum install python39 -y",
+				"sudo pip3 install --upgrade pip",
+				"sudo pip3 install awscli --upgrade",
+				"sudo yum install zip unzip -y",
+				"sudo python3 -V"
+			],
+			"only": [ "rhel" ]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"sudo amazon-linux-extras enable python3.8 -y",
+				"sudo yum install python-pip -y",
+				"sudo pip install --upgrade pip",
+				"sudo yum install python38 -y",
+				"sudo amazon-linux-extras install kernel-5.15 -y",
+				"sudo yum install golang -y"
+				],
+			"only": [ "amazon2" ]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"sudo yum install java-1.8.0-openjdk -y",
+				"sudo yum install httpd -y",
+				"sudo yum install mod_ssl -y",
+				"sudo yum install wget -y"
+			]
+		},
+		{
+			"type": "shell",
+			"inline": [
+			"sudo pip3 install ansible",
+			"cd /tmp",
+			"sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+            ],
+			"only": ["rhel"]
+		},
+		{
+			"type": "shell",
+			"inline": [
+			"sudo pip install ansible"
+			],
+			"only": ["amazon2"]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"cd /tmp",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/AWS_ATM_SPL_DEFAULT.tar ./",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/splunkforwarder-9.0.5-e9494146ae5c-Linux-x86_64.tgz ./",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/QualysCloudAgent.rpm ./",
+				"ls -l",
+				"cd /var/tmp",
+                "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/flexera.zip ./",
+				"sudo unzip flexera.zip",
+				"sudo ls",
+				"sudo rpm --upgrade --oldpackage --verbose /var/tmp/managesoft-21.0.0-1.x86_64.rpm"  
+            ]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"cd /tmp",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/docker-rhel/fuse-overlayfs-0.7.2-6.el7_8.x86_64.rpm ./",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/docker-rhel/fuse3-libs-3.6.1-2.el7.x86_64.rpm ./",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/docker-rhel/slirp4netns-0.4.3-4.el7_8.x86_64.rpm ./",
+				"ls -l",
+				"sudo rpm -i slirp4netns-0.4.3-4.el7_8.x86_64.rpm",
+				"sudo rpm -i fuse3-libs-3.6.1-2.el7.x86_64.rpm",
+				"sudo rpm -i fuse-overlayfs-0.7.2-6.el7_8.x86_64.rpm"
+			],
+			"only": [ "rhel" ]
+		},		
+		{
+			"type": "shell",
+			"inline": [
+				"sudo bash -c \"mkdir /tmp/ssm\"",
+				"sudo bash -c \"sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm\""
+			],
+			"only": ["rhel"]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"cd /tmp",
+				"DD_AGENT_MAJOR_VERSION=7 DD_API_KEY=\"<DATADOG_API_KEY>\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\"",
+				"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/datadog.yaml ./",
+				"sudo mv datadog.yaml /etc/datadog-agent/",
+				"sudo systemctl restart datadog-agent"
+			]
+		},
+		
+		{
+			"type": "shell",
+			"inline": [
+				"x=$(uname -rv);echo $x",
+				"echo Rebooting:"
+			],
+			"only":["amazon2","rhel"]
+		},
+		{
+			"type": "shell",
+			"inline": [
+			  "sudo reboot"
+			],
+			  "expect_disconnect": true,
+			  "only":["amazon2"]
+		},
+		{
+			"type": "shell",
+			"inline": [
+			  "sudo package-cleanup --oldkernels --count=1 -y",
+			  "rpm -q kernel",
+			  "sudo yum update -y",
+			  "x=$(uname -rv);echo $x"
+			 ],
+			"only": ["amazon2"]
+		},
+		{
+			"type": "file",
+			"source": "files/ContainerDefender-Installation-boot.service",
+			"destination": "/tmp/ContainerDefender-Installation-boot.service"
+		 },
+		 {
+		  "type": "file",
+		  "source": "files/ContainerDefender-Installation-boot",
+		  "destination": "/tmp/ContainerDefender-Installation-boot"
+		  },
+		  {
+			"type": "file",
+			"source": "files/setup-ContainerDefender-boot.sh",
+			"destination": "/tmp/setup-ContainerDefender-boot.sh"
+			},
+		{
+			"type": "shell",
+			"inline": [
+			   "sudo bash /tmp/setup-ContainerDefender-boot.sh",
+			   "x=$(uname -rv);echo $x",
+			   "sudo bash -c \"source /etc/profile; yum update -y\"",
+			   "sudo bash -c \"source /etc/profile; yum update kernel -y\""
+			 ],
+			"only": ["amazon2", "rhel"]
+		},
+		{
+      "type": "chef-solo",
+      "cookbook_paths": ["cookbooks"],
+      "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+      "version": "16.13.16",
+      "run_list": [
+         "anthem_linux::default"
+        ]
+    },
+		{
+      "type": "ansible-local",
+      "playbook_file": "playbooks/docker-standalone-playbook.yml",
+      "playbook_dir": "playbooks",
+      "role_paths": [
+        "playbooks/docker/roles/docker-common",
+		"playbooks/docker/roles/docker-standalone"
+      ],
+      "clean_staging_directory": true
+	},
+	{
+		"type": "shell",
+		"inline": [
+			"sudo systemctl restart docker",
+			"sudo systemctl status docker",
+			"sudo systemctl enable docker.service"
+		]
+	},
+	{
+		"type": "shell",
+		"inline": [
+			"cd /tmp",
+			"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/shell-scripts/TCS-Checks.sh ./",
+            "sudo bash /tmp/TCS-Checks.sh"
+		]
+	  },
+	{
+		"type": "ansible-local",
+		"playbook_file": "playbooks/certs-playbook.yml",
+		"playbook_dir": "playbooks",
+		"role_paths": [
+			"playbooks/certs/roles/certs-install"
+		],
+		"clean_staging_directory": true
+	}
+	],
+	"post-processors": [
+    {
+      "type": "manifest",
+      "output": "manifests/docker-prod-output.json",
+      "strip_path": true
+    }
+	]
+}

@@ -1,0 +1,166 @@
+{
+  "variables": {
+    "imageName": "antm-golden-eks",
+    "templateVersion": "0.2.0",
+    "associate_public_ip": "false",
+    "ignore_tls": "false",
+    "source_cidr": "22.0.0.0/8",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+    "amzn2_source_ami": "amazon-eks-node-1.12-*",
+    "aws_region": "us-east-1",
+    "cookbook_path": "./cookbooks/",
+    "vpcId": "vpc-a0a38ed8",
+    "subnetId": "subnet-3f685c5b",
+    "site247Install": "",
+    "site247Key": "",
+    "root_volume_size": "20"
+  },
+
+  "builders": [{
+    "name": "amazon2",
+    "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+    "type": "amazon-ebs",
+    "associate_public_ip_address": "{{user `associate_public_ip`}}",
+    "region": "{{user `aws_region`}}",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "token": "{{user `aws_session_token`}}",
+    "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+    "instance_type": "t2.large",
+    "vpc_id": "{{user `vpcId` }}",
+    "subnet_id": "{{user `subnetId`}}",
+    "ena_support": true,
+    "sriov_support": true,
+    "ssh_username": "ec2-user",
+    "source_ami_filter": {
+      "filters": {
+        "architecture": "x86_64",
+        "virtualization-type": "hvm",
+        "name": "{{user `amzn2_source_ami`}}",
+        "root-device-type": "ebs",
+        "state": "available"
+      },
+      "owners": ["602401143452"],
+      "most_recent": true
+    },
+    "ami_name": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+    "ami_description": "Created by AMI Builder",
+    "encrypt_boot": false,
+    "launch_block_device_mappings": [{
+        "device_name": "/dev/xvda",
+        "volume_size": "{{user `root_volume_size`}}",
+        "volume_type": "gp2",
+        "delete_on_termination": true
+      },
+      {
+        "device_name": "/dev/xvdcz",
+        "volume_size": "20",
+        "volume_type": "gp2",
+        "delete_on_termination": true,
+        "encrypted": false
+      }
+    ],
+    "tags": {
+      "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-amznlinux2",
+      "CreatedBy": "AMIBuilder"
+    },
+    "snapshot_users": ["059083506967", "423844416462", "282326397566", "104751738719", "950511364051", "232861963405", "753087526464", "975487953192", "644490409399", "830778045019", "738525224718", "163997952029", "399664581172", "440817447232", "243973670510", "706161135636", "600749888086", "344061453393", "552263939535", "293000243578", "163274500035", "474156701944", "824352800729", "131417301977", "369681341365", "677426999384", "087318327516", "536665389074", "423869099164", "576737960813", "741633953140", "614697844342", "823259492429", "304036878590", "059965515408", "396652616806", "592513998017", "618576081157", "092064647453", "382555760355", "126806348927", "453404995933", "309267115051", "948086048609", "649370421000", "886893641236", "457245882286", "261861373582", "298036598379", "586118205878", "976218456364", "509230727284", "810862522383", "432443758803", "082846151389", "272647231393", "583625319755", "940994581263", "740507271746", "336734927939", "371297951859", "306798486131", "031062612619", "424685311267", "560137186060", "154784594163", "585828105383", "447339490720", "574891183040","016150242923","084019337282"],
+    "snapshot_tags": {
+      "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "BuildDate": "{{isotime}}",
+      "TemplateVersion": "{{user `templateVersion`}}",
+      "AMIType": "{{user `imageName`}}-amznlinux2",
+      "CreatedBy": "AMIBuilder"
+    }
+  }],
+
+  "provisioners": [{
+      "type": "shell",
+      "inline": "sleep 60"
+    },
+    {
+      "type": "file",
+      "source": "files/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz",
+      "destination": "/tmp/splunkforwarder-7.3.5-86fd62efc3d7-Linux-x86_64.tgz"
+    },
+    {
+      "type": "file",
+      "source": "files/AWS_ATM_SPL_DEFAULT.tar",
+      "destination": "/tmp/AWS_ATM_SPL_DEFAULT.tar"
+    },
+    {
+      "type": "file",
+      "source": "files/QualysCloudAgent.rpm",
+      "destination": "/tmp/QualysCloudAgent.rpm"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo bash -c \"source /etc/profile; yum update -y\"",
+        "sudo bash -c \"source /etc/profile; yum update kernel -y\""
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum install python-pip -y",
+        "sudo pip install ansible"
+      ],
+      "only": [ "amazon2" ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum install -y aws-cli && export PATH=/opt/spark/spark-1.5.2-bin-hadoop2.6/bin:$PATH"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo bash -c \"mkdir /tmp/ssm\"",
+        "sudo bash -c \"sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm\""
+      ]
+    },
+    {
+      "type": "chef-solo",
+      "cookbook_paths": ["cookbooks"],
+      "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+      "version": "16.13.16",
+      "run_list": [
+        "anthem_linux::default"
+      ],
+      "json": {
+        "anthem_linux": {
+          "site247": {
+            "key": "{{user `site247Key`}}",
+            "install": "{{user `site247Install`}}"
+          }
+        }
+      }
+    },
+    {
+      "type": "shell",
+      "inline": ["mkdir -p /tmp/worker/"]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbooks/eks-playbook.yml",
+      "playbook_dir": "playbooks",
+      "role_paths": [
+        "playbooks/docker/roles/docker-common",
+        "playbooks/docker/roles/eks"
+      ],
+      "clean_staging_directory": true
+    }
+  ],
+  "post-processors": [{
+    "type": "manifest",
+    "output": "manifests/eks-output.json",
+    "strip_path": true
+  }]
+}

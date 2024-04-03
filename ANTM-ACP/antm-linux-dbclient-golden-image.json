@@ -1,0 +1,355 @@
+{
+  "variables": {
+    "imageName": "antm-golden-dbclients-linux-base", 
+    "templateVersion": "0.3.0",
+    "associate_public_ip": "false",
+    "ignore_tls": "false",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_session_token": "{{env `AWS_SESSION_TOKEN`}}",
+    "amzn2_source_ami": "amzn2-ami-kernel-5.10-hvm-*-x86_64-gp2",
+    "ubuntu_source_ami": "*ubuntu-xenial-16.04-amd64-server-*",
+    "rhel_source_ami": "RHEL-7.9_HVM-20210208-x86_64-0-Hourly2-GP2",
+    "aws_region": "us-east-1",
+    "cookbook_path": "./cookbooks/",
+    "vpcId": "vpc-a0a38ed8",
+    "subnetId": "subnet-3f685c5b",
+    "source_cidr": "22.0.0.0/8",
+    "site247Install": "",
+    "site247Key": "",
+    "root_volume_size": "40",
+    "aws_accounts": null
+  },
+
+  "builders": [{
+      "name": "amazon2",
+      "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+      "type": "amazon-ebs",
+      "iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+      "associate_public_ip_address": "{{user `associate_public_ip`}}",
+      "region": "{{user `aws_region`}}",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "token": "{{user `aws_session_token`}}",
+      "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+      "instance_type": "t2.large",
+      "vpc_id": "{{user `vpcId` }}",
+      "subnet_id": "{{user `subnetId`}}",
+      "ena_support": true,
+      "sriov_support": true,
+      "ssh_username": "ec2-user",
+      "source_ami_filter": {
+        "filters": {
+          "architecture": "x86_64",
+          "virtualization-type": "hvm",
+          "name": "{{user `amzn2_source_ami`}}",
+          "root-device-type": "ebs",
+          "state": "available"
+        },
+        "owners": ["137112412989"],
+        "most_recent": true
+      },
+      "ami_name": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "ami_description": "Created by AMI Builder",
+      "encrypt_boot": false,
+      "launch_block_device_mappings": [{
+        "device_name": "/dev/xvda",
+        "volume_size": "{{user `root_volume_size`}}",
+        "volume_type": "gp3",
+        "delete_on_termination": true
+      }],
+      "tags": {
+        "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}-amznlinux2",
+        "CreatedBy": "AMIBuilder"
+      },
+      "snapshot_users": "{{user `aws_accounts`}}",
+      "snapshot_tags": {
+        "ImageName": "{{user `imageName`}}-amznlinux2-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}-amznlinux2",
+        "CreatedBy": "AMIBuilder"
+      }
+    },
+    {
+      "name": "rhel",
+      "insecure_skip_tls_verify": "{{user `ignore_tls`}}",
+      "type": "amazon-ebs",
+      "iam_instance_profile": "ANTM-AMI-Builder-EC2-Instance-Profile",
+      "associate_public_ip_address": "{{user `associate_public_ip`}}",
+      "region": "{{user `aws_region`}}",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "token": "{{user `aws_session_token`}}",
+      "temporary_security_group_source_cidr": "{{user `source_cidr`}}",
+      "instance_type": "t2.large",
+      "vpc_id": "{{user `vpcId` }}",
+      "subnet_id": "{{user `subnetId`}}",
+      "ena_support": true,
+      "sriov_support": true,
+      "ssh_username": "ec2-user",
+      "source_ami_filter": {
+        "filters": {
+          "architecture": "x86_64",
+          "virtualization-type": "hvm",
+          "name": "{{user `rhel_source_ami`}}",
+          "root-device-type": "ebs",
+          "state": "available"
+        },
+        "owners": ["309956199498"],
+        "most_recent": true
+      },
+      "ami_name": "{{user `imageName`}}-rhel-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+      "ami_description": "Created by AMI Builder",
+      "encrypt_boot": false,
+      "launch_block_device_mappings": [{
+          "device_name": "/dev/sda1",
+          "volume_size": "{{user `root_volume_size`}}",
+          "volume_type": "gp3",
+          "delete_on_termination": true
+        },
+        {
+          "device_name": "/dev/sda1",
+          "volume_size": "{{user `root_volume_size`}}",
+          "volume_type": "gp3",
+          "delete_on_termination": true
+        }
+      ],
+      "tags": {
+        "ImageName": "{{user `imageName`}}-rhel-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}-rhel",
+        "CreatedBy": "AMIBuilder"
+      },
+      "snapshot_users": "{{user `aws_accounts`}}",
+      "snapshot_tags": {
+        "ImageName": "{{user `imageName`}}-rhel-{{ user `templateVersion` }}-{{ isotime | clean_ami_name }}",
+        "BuildDate": "{{isotime}}",
+        "TemplateVersion": "{{user `templateVersion`}}",
+        "AMIType": "{{user `imageName`}}-rhel",
+        "CreatedBy": "AMIBuilder"
+      }
+    }
+  ],
+
+  "provisioners": [{
+      "type": "shell",
+      "inline": "sleep 60"
+    },
+    {
+      "type": "file",
+      "source": "files/Host-Defender-Installation-boot.service",
+      "destination": "/tmp/Host-Defender-Installation-boot.service"
+     },
+     {
+      "type": "file",
+      "source": "files/Host-Defender-Installation-boot",
+      "destination": "/tmp/Host-Defender-Installation-boot"
+      },
+      {
+      "type": "file",
+      "source": "files/setup-hostdefender-boot.sh",
+      "destination": "/tmp/setup-hostdefender-boot.sh"
+      },
+    {
+        "type": "shell",
+        "inline": [
+          "sudo bash /tmp/setup-hostdefender-boot.sh",
+           "x=$(uname -rv);echo $x",
+           "sudo bash -c \"source /etc/profile; yum update -y\"",
+           "sudo bash -c \"source /etc/profile; yum update kernel -y\""
+         ],
+        "only": ["amazon2", "rhel"]
+    },
+    {
+			"type": "shell",
+			"inline": [
+				"sudo yum install python37 -y",
+				"sudo pip3 install --upgrade pip",
+				"sudo pip3 install awscli --upgrade",
+        "python3 --version"
+			],
+			"only": [ "rhel","amazon2" ]
+		},
+    {
+        "type": "shell",
+        "inline": [
+          "sudo yum install wget -y"
+        ],
+        "only": [ "amazon2" ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+      "cd /opt",
+      "sudo yum update -y",
+      "sudo yum install java -y",
+      "sudo yum install jq -y",
+      "sudo mkdir vault && cd vault",
+      "sudo yum install -y yum-utils",
+      "sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo",
+      "sudo yum -y install vault",
+      "vault --version",
+      "cd /opt",
+      "sudo mkdir schema-conversion-tool && cd schema-conversion-tool",
+      "sudo wget https://s3.amazonaws.com/publicsctdownload/Fedora/aws-schema-conversion-tool-1.0.latest.zip",
+      "sudo unzip aws-schema-conversion-tool-1.0.latest.zip",
+      "sudo yum install -y aws-schema-conversion-tool-*.rpm >/dev/null 2>&1",
+      "sudo sed -i '/^-Xss128M.*/a -Xms4096m' /opt/aws-schema-conversion-tool/lib/app/AWSSchemaConversionTool.cfg",
+      "sudo sed -i '/^-Xms4096m.*/a -Xmx10240m' /opt/aws-schema-conversion-tool/lib/app/AWSSchemaConversionTool.cfg", 
+      "sudo echo -e \"[mongodb-org-5.0] \nname=MongoDB Repository\nbaseurl=https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org/5.0/x86_64/\ngpgcheck=1 \nenabled=1 \ngpgkey=https://www.mongodb.org/static/pgp/server-5.0.asc\" | sudo tee /etc/yum.repos.d/mongodb-org-5.0.repo",
+      "sudo yum install -y mongodb-org-shell ",
+      "cd /opt ",
+      "sudo mkdir mongodb && cd mongodb",
+      "sudo wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem",
+      "sudo wget https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org/3.6/x86_64/RPMS/mongodb-org-tools-3.6.23-1.amzn1.x86_64.rpm",
+      "sudo wget https://repo.mongodb.org/yum/redhat/6/mongodb-org/3.0/x86_64/RPMS/mongodb-org-shell-3.0.15-1.el6.x86_64.rpm",
+      "cd /opt",
+      "sudo mkdir mysql && cd mysql",
+      "sudo yum install -y mysql",
+      "cd /opt",
+      "sudo mkdir postgresql && cd postgresql",
+      "sudo amazon-linux-extras install postgresql12",
+      "psql -V",
+      "cd /opt",
+      "sudo mkdir Apache && cd Apache",
+      "sudo wget https://downloads.apache.org/tinkerpop/3.7.0/apache-tinkerpop-gremlin-console-3.7.0-bin.zip ",
+      "sudo unzip apache-tinkerpop-gremlin-console-*.zip",
+      "cd /opt",
+      "sudo mkdir dynamodb && cd dynamodb",
+      "sudo wget https://s3.eu-central-1.amazonaws.com/dynamodb-local-frankfurt/dynamodb_local_latest.zip",
+      "sudo unzip dynamodb_local_latest.zip",
+      "cd /opt",
+      "sudo mkdir NOSQL && cd NOSQL",
+      "sudo wget https://s3.amazonaws.com/nosql-workbench/NoSQL%20Workbench-linux-x86_64-3.0.0.AppImage",
+      "cd /opt",
+      "sudo mkdir benchmarks && cd benchmarks",
+      "sudo wget https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm",
+      "sudo yum install -y postgresql-contrib",
+      "cd /opt",
+      "sudo mkdir KeySpaces-ApacheCassandr && cd KeySpaces-ApacheCassandr",
+      "sudo wget https://downloads.apache.org/cassandra/3.11.16/apache-cassandra-3.11.16-src.tar.gz",
+      "sudo gunzip apache-cassandra-*.gz",
+      "sudo tar -xvf apache-cassandra-*.tar",
+      "sudo mv apache-cassandra-*/ apache-cassandra",
+      "cd /opt",
+      "sudo mkdir MemcachedRedis && cd MemcachedRedis",
+      "sudo wget http://rpms.remirepo.net/enterprise/remi-release-7.rpm",
+      "sudo yum install -y telnet",
+      "sudo amazon-linux-extras install redis6",
+      "cd /opt",
+      "sudo mkdir Oracle && cd Oracle",
+      "sudo wget https://download.oracle.com/otn_software/linux/instantclient/215000/oracle-instantclient-basic-21.5.0.0.0-1.x86_64.rpm",
+      "sudo yum-config-manager --add-repo http://yum.oracle.com/public-yum-ol7.repo",
+      "sudo aws s3 cp s3://antm-cicd-ami-resources/instantclient-basic-linuxx64.zip .",
+      "sudo aws s3 cp s3://antm-cicd-ami-resources/instantclient-sqlplus-linuxx64.zip .",
+      "sudo unzip instantclient-basic-linuxx64.zip",
+      "sudo unzip instantclient-sqlplus-linuxx64.zip",
+      "sudo rm -rf instantclient-basic-linuxx64.zip",
+      "sudo rm -rf instantclient-sqlplus-linuxx64.zip",
+      "cd /etc/profile.d",
+      "sudo touch oracle_sqlplus.sh",
+      "sudo chmod 777 oracle_sqlplus.sh",
+      "ls -l",
+      "sudo echo 'export ORACLE_HOME=/opt/Oracle/instantclient_21_5' >> oracle_sqlplus.sh",
+      "sudo echo 'export LD_LIBRARY_PATH=$ORACLE_HOME' >> oracle_sqlplus.sh",
+      "sudo echo 'export PATH=$ORACLE_HOME:$PATH' >> oracle_sqlplus.sh"
+      ],
+      "only": [ "amazon2" ]
+  },
+    {
+    	"type": "shell",
+    	"inline": [
+        "cd /tmp",
+    		"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/QualysCloudAgent.rpm ./",
+        "DD_AGENT_MAJOR_VERSION=7 DD_API_KEY=\"<DATADOG_API_KEY>\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\"",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/datadog.yaml ./",
+        "sudo mv datadog.yaml /etc/datadog-agent/",
+        "sudo systemctl restart datadog-agent",
+        "cd /var/tmp",
+			  "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/flexera.zip ./",
+			  "sudo unzip flexera.zip",
+			  "sudo rpm --upgrade --oldpackage --verbose /var/tmp/managesoft-21.0.0-1.x86_64.rpm"
+    	],
+    	"only": ["amazon2", "rhel"]
+    },
+    {
+    	"type": "shell",
+    	"inline": [
+        "sudo pip3 install ansible"
+    	],
+    	"only": ["rhel"]
+    },
+    {
+    	"type": "shell",
+    	"inline": [
+    		"cd /tmp",
+    		"aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/AWS_ATM_SPL_DEFAULT.tar ./",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/splunkforwarder-9.0.5-e9494146ae5c-Linux-x86_64.tgz ./",
+        "ls -l"
+    	]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo bash -c \"mkdir /tmp/ssm\"",
+        "sudo bash -c \"sudo yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm\""
+      ],
+      "only": ["rhel"]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "x=$(uname -rv);echo $x",
+        "sudo yum update -y",
+        "sudo yum update kernel -y"
+      ],
+      "only":["rhel"]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo package-cleanup --oldkernels --count=1 -y",
+        "x=$(uname -rv);echo $x"
+       ],
+      "only": ["amazon2", "rhel"]
+    },
+    {
+      "type": "chef-solo",
+      "cookbook_paths": ["cookbooks"],
+      "execute_command": "{{if .Sudo}}sudo {{end}}chef-solo --chef-license accept-silent --no-color -c /tmp/packer-chef-solo/solo.rb -j /tmp/packer-chef-solo/node.json",
+      "version": "16.13.16",
+      "run_list": [
+        "anthem_linux::default"
+      ]
+    },
+    {
+    	"type": "shell",
+    	"inline": [
+        "sudo pip3 install ansible"
+    	],
+    	"only": ["amazon2"]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "cd /tmp",
+        "aws s3 cp s3://antm-cicd-ami-resources/codebuild-build-files/shell-scripts/TCS-Checks.sh ./",
+        "sudo bash /tmp/TCS-Checks.sh"
+      ]
+      },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbooks/certs-playbook.yml",
+      "playbook_dir": "playbooks",
+      "role_paths": [
+        "playbooks/certs/roles/certs-install"
+      ],
+      "clean_staging_directory": true
+    }
+  ]
+}
