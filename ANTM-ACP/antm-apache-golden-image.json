@@ -15,6 +15,7 @@
 		"source_cidr": "22.0.0.0/8",
 		"root_volume_size":	"30",
 		"aws_accounts": null
+		
 	},
 	
 	"builders": [
